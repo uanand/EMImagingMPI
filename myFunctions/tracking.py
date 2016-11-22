@@ -100,7 +100,6 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
     for frame in frameList:
         fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal),labelStack[:,:,frame-1])
     fp.attrs['maxID'] = maxID
-    fp.attrs['occurenceFrameList'] = occurenceFrameList
     del labelStack
     return maxID, occurenceFrameList
 #######################################################################
