@@ -109,3 +109,32 @@ def delete(fileName):
     if (os.path.exists(fileName)):
         os.remove(fileName)
 ##############################################################
+
+
+##############################################################
+# DELETE A FILE
+##############################################################
+def writeH5Dataset(fp,datasetName,dataset):
+    flag = 0
+    try:
+        fp[datasetName]
+    except:
+        flag = 1
+    if (flag==0):
+        del fp[datasetName]
+        fp.create_dataset(datasetName, data=dataset, compression='gzip', compression_opts=9)
+    else:
+        fp.create_dataset(datasetName, data=dataset, compression='gzip', compression_opts=9)
+    return 0
+##############################################################
+
+
+
+
+
+
+
+
+
+
+
