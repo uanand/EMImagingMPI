@@ -4,6 +4,7 @@ import h5py
 import sys
 import imageProcess
 import fileIO
+import misc
 
 #######################################################################
 # LABELING PARTICLES
@@ -46,25 +47,27 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
                 else:
                     perAreaChangeTh = perAreaChangeRange[1]
                     centerDispTh = centerDispRange[1]
-                closeness = 1e10
+                closeness,J = 1e10,0
                 for j in range(len(dictionary_0['id'])-1,-1,-1):
                     center_0 = dictionary_0['centroid'][j]
                     area_0 = dictionary_0['area'][j]
                     frame_0 = dictionary_0['frame'][j]
-                    centerDisp = numpy.sqrt((center_1[0]-center_0[0])**2. + (center_1[1]-center_0[1])**2.)
-                    perAreaChange = 1.0*numpy.abs(area_1-area_0)/numpy.maximum(area_1,area_0)
+                    centerDisp = numpy.sqrt((center_1[0]-center_0[0])**2 + (center_1[1]-center_0[1])**2)
+                    perAreaChange = 100.0*numpy.abs(area_1-area_0)/numpy.maximum(area_1,area_0)
                     missFrames = frame_1-frame_0
                     if (centerDisp <= centerDispTh):
                         if (perAreaChange <= perAreaChangeTh):
                             if (missFrames <= missFramesTh):
                                 if (centerDisp < closeness):
+                                    closeness = centerDisp
                                     J = j
                                     flag = 1
+                                    
                 if (flag == 1):
-                    labelStack[:,:,frame-1] += (bImg_1_LabelN*dictionary_0['id'][j]).astype('uint32')
-                    dictionary_0['centroid'][j] = center_1
-                    dictionary_0['area'][j] = area_1
-                    dictionary_0['frame'][j] = frame
+                    labelStack[:,:,frame-1] += (bImg_1_LabelN*dictionary_0['id'][J]).astype('uint32')
+                    dictionary_0['centroid'][J] = center_1
+                    dictionary_0['area'][J] = area_1
+                    dictionary_0['frame'][J] = frame
                 if (flag == 0):
                     maxID += 1
                     occurenceFrameList.append(frame)
@@ -82,14 +85,17 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
     elif (labelStack.max()<65536):
         labelStack = labelStack.astype('uint16')
         
+    print "Checking for multiple particles in a single frame"
     for frame in frameList:
         labelImg = labelStack[:,:,frame-1]
-        for N in numpy.unique(labelImg)[1:]:
-            labelImgN = labelImg==N
-            numLabel = imageProcess.regionProps(bImg, gImg, structure=structure)[1]
-            if (numLabel>1):
-                labelImg[labelImg==N] = 0
-                labelStack[:,:,frame-1] = labelImg
+        numLabel = imageProcess.regionProps(labelImg.astype('bool'), gImg, structure=structure)[1]
+        if (numLabel != numpy.size(numpy.unique(labelImg)[1:])):
+            for N in numpy.unique(labelImg)[1:]:
+                labelImgN = labelImg==N
+                numLabel = imageProcess.regionProps(labelImgN, gImg, structure=structure)[1]
+                if (numLabel>1):
+                    labelImg[labelImg==N] = 0
+                    labelStack[:,:,frame-1] = labelImg
                 
     for frame in frameList:
         fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal),labelStack[:,:,frame-1])
