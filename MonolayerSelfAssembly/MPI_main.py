@@ -19,10 +19,10 @@ import misc
 #######################################################################
 # USER INPUTS
 #######################################################################
-inputFile = '/home/uanand/images/utkarsh/Guanhua/MonolayerSelfAssembly/38/38-crop_gray.avi'
-outputFile = '/home/uanand/images/utkarsh/Guanhua/MonolayerSelfAssembly/38/38-crop.h5'
-inputDir = '/home/uanand/images/utkarsh/Guanhua/MonolayerSelfAssembly/38'
-outputDir = '/home/uanand/images/utkarsh/Guanhua/MonolayerSelfAssembly/38/output'
+inputFile = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/38-crop.avi'
+outputFile = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/38-crop.h5'
+inputDir = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/'
+outputDir = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/output'
 pixInNM = 1.45
 fps = 100
 microscope = 'JOEL2010' #'JOEL2010','T12'
@@ -125,39 +125,39 @@ comm.Barrier()
 #######################################################################
 # IMAGE SEGMENTATION
 #######################################################################
-#if (rank==0):
-    #print "Performing segmentation for all the frames"
+if (rank==0):
+    print "Performing segmentation for all the frames"
     
-#fp = h5py.File(outputFile, 'r')
-#[row,col,numFrames,frameList] = misc.getVitals(fp)
-#procFrameList = numpy.array_split(frameList,size)
+fp = h5py.File(outputFile, 'r')
+[row,col,numFrames,frameList] = misc.getVitals(fp)
+procFrameList = numpy.array_split(frameList,size)
 
-#areaRange = numpy.array([60,500], dtype='float64')
-#circularityRange = numpy.array([0.85,1], dtype='float64')
-#sigma = 1
+areaRange = numpy.array([60,500], dtype='float64')
+circularityRange = numpy.array([0.85,1], dtype='float64')
+sigma = 1
 
-#for frame in procFrameList[rank]:
-    #gImgRaw = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
-    #gImgNorm = imageProcess.normalize(gImgRaw,min=0,max=230)
-    #gImgProc = fp['/dataProcessing/processedStack/'+str(frame).zfill(zfillVal)].value
-    #bImgKapur = gImgProc>=myCythonFunc.threshold_kapur(gImgProc.flatten())
+for frame in procFrameList[rank]:
+    gImgRaw = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
+    gImgNorm = imageProcess.normalize(gImgRaw,min=0,max=230)
+    gImgProc = fp['/dataProcessing/processedStack/'+str(frame).zfill(zfillVal)].value
+    bImgKapur = gImgProc>=myCythonFunc.threshold_kapur(gImgProc.flatten())
     
-    #gImgInv = 255-gImgRaw
-    #gImgBlur = ndimage.gaussian_filter(gImgInv, sigma=sigma)
-    #bImgAdaptive = cv2.adaptiveThreshold(gImgBlur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 0).astype('bool')
+    gImgInv = 255-gImgRaw
+    gImgBlur = ndimage.gaussian_filter(gImgInv, sigma=sigma)
+    bImgAdaptive = cv2.adaptiveThreshold(gImgBlur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 0).astype('bool')
     
-    #bImg = numpy.logical_and(bImgKapur,bImgAdaptive)
-    #bImg = imageProcess.fillHoles(bImg)
-    #bImg = myCythonFunc.removeBoundaryParticles(bImg.astype('uint8'))
-    #bImg = myCythonFunc.areaThreshold(bImg.astype('uint8'), areaRange=areaRange)
-    #bImg = myCythonFunc.circularThreshold(bImg.astype('uint8'), circularityRange=circularityRange)
-    #bImg = imageProcess.convexHull(bImg)
+    bImg = numpy.logical_and(bImgKapur,bImgAdaptive)
+    bImg = imageProcess.fillHoles(bImg)
+    bImg = myCythonFunc.removeBoundaryParticles(bImg.astype('uint8'))
+    bImg = myCythonFunc.areaThreshold(bImg.astype('uint8'), areaRange=areaRange)
+    bImg = myCythonFunc.circularThreshold(bImg.astype('uint8'), circularityRange=circularityRange)
+    bImg = imageProcess.convexHull(bImg)
     
-    #bImgBdry = imageProcess.normalize(imageProcess.boundary(bImg))
-    #finalImage = numpy.column_stack((numpy.maximum(gImgNorm,bImgBdry), gImgNorm))
-    #cv2.imwrite(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.png', finalImage)
-#fp.flush(), fp.close()
-#comm.Barrier()
+    bImgBdry = imageProcess.normalize(imageProcess.boundary(bImg))
+    finalImage = numpy.column_stack((numpy.maximum(gImgNorm,bImgBdry), gImgNorm))
+    cv2.imwrite(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.png', finalImage)
+fp.flush(), fp.close()
+comm.Barrier()
 #######################################################################
 
 
