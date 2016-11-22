@@ -20,7 +20,7 @@ import tracking
 #######################################################################
 # USER INPUTS
 #######################################################################
-inputFile = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/38-crop.avi'
+inputFile = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/38-crop-1-100.avi'
 outputFile = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/38-crop.h5'
 inputDir = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/'
 outputDir = '/mnt/NAS-Drive/Utkarsh-Share/Guanhua/MonolayerSelfAssembly/38/output'
@@ -62,7 +62,7 @@ size = comm.Get_size()
     
     #frameList = range(1,numFrames+1)
     #for frame in frameList:
-        #fp.create_dataset('/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal), data=gImgRawStack[:,:,frame-1], compression='gzip', compression_opts=9)
+        #fileIO.writeH5Dataset(fp,'/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal),gImgRawStack[:,:,frame-1])
         
     #fp.attrs['inputFile'] = inputFile
     #fp.attrs['outputFile'] = outputFile
@@ -83,8 +83,8 @@ size = comm.Get_size()
     #fileIO.mkdirs(outputDir)
     #fileIO.saveImageSequence(gImgRawStack,outputDir+'/dataProcessing/gImgRawStack')
     
-    #fp.flush(), fp.close()
     #del gImgRawStack
+    #fp.flush(), fp.close()
     #gc.collect()
 #comm.Barrier()
 
@@ -116,7 +116,8 @@ size = comm.Get_size()
 #if (rank==0):
     #for frame in frameList:
         #gImgProc = cv2.imread(outputDir+'/dataProcessing/processedStack/'+str(frame).zfill(zfillVal)+'.png',0)
-        #fp.create_dataset('/dataProcessing/processedStack/'+str(frame).zfill(zfillVal), data=gImgProc, compression='gzip', compression_opts=9)
+        #fileIO.writeH5Dataset(fp,'/dataProcessing/processedStack/'+str(frame).zfill(zfillVal),gImgProc)
+        
 #fp.flush(), fp.close()
 #comm.Barrier()
 #######################################################################
@@ -165,56 +166,77 @@ size = comm.Get_size()
 #######################################################################
 # CREATE BINARY IMAGES INTO HDF5 FILE
 #######################################################################
-if (rank==0):
-    print "Creating binary images and writing into h5 file"
+#if (rank==0):
+    #print "Creating binary images and writing into h5 file"
     
-if (rank==0):
-    fp = h5py.File(outputFile, 'r+')
-else:
-    fp = h5py.File(outputFile, 'r')
-[row,col,numFrames,frameList] = misc.getVitals(fp)
-procFrameList = numpy.array_split(frameList,size)
+#if (rank==0):
+    #fp = h5py.File(outputFile, 'r+')
+#else:
+    #fp = h5py.File(outputFile, 'r')
+#[row,col,numFrames,frameList] = misc.getVitals(fp)
+#procFrameList = numpy.array_split(frameList,size)
 
-for frame in procFrameList[rank]:
-    bImg = cv2.imread(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.png',0)[0:row,0:col]
-    bImg = bImg==255
-    bImg = imageProcess.fillHoles(bImg)
-    numpy.save(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy', bImg)
+#for frame in procFrameList[rank]:
+    #bImg = cv2.imread(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.png',0)[0:row,0:col]
+    #bImg = bImg==255
+    #bImg = imageProcess.fillHoles(bImg)
+    #numpy.save(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy', bImg)
    
-comm.barrier()
-if (rank==0):
-    for frame in frameList:
-        bImg = numpy.load(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy')
-        del fp['/segmentation/bImgStack/'+str(frame).zfill(zfillVal)]
-        fp.create_dataset('/segmentation/bImgStack/'+str(frame).zfill(zfillVal), data=bImg, compression='gzip', compression_opts=9)
-        fileIO.delete(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy')
+#comm.barrier()
+#if (rank==0):
+    #for frame in frameList:
+        #bImg = numpy.load(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy')
+        #fileIO.writeH5Dataset(fp,'/segmentation/bImgStack/'+str(frame).zfill(zfillVal),bImg)
+        #fileIO.delete(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy')
         
-fp.flush(), fp.close()
-comm.Barrier()
+#fp.flush(), fp.close()
+#comm.Barrier()
 #######################################################################
 
 
 #######################################################################
 # LABELLING PARTICLES
 #######################################################################
-#if (rank==0):
-	#print "LABELLING PARTICLES"
-    #fp = h5py.File(outputFile, 'r+')
-    #[row,col,numFrames,frameList] = misc.getVitals(fp)
-	
-	#centerDispRange = [5,5]
-	#perAreaChangeRange = [1,2]
-	#missFramesTh = 10
+centerDispRange = [5,5]
+perAreaChangeRange = [1000,1000]
+missFramesTh = 10
     
-    #maxID, occurenceFrameList = myPythonFunc.labelParticles(bImgDir, gImgDir, labelDataDir, labelImgDir, row, col, numFrames, centerDispRange, perAreaChangeRange, missFramesTh, frameList, structure, fontScale=fontScale)
-    
-	#labelImgDir = inputDir+'/output/images/segmentation/tracking'
-	
-    #maxID, occurenceFrameList = tracking.labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[20,30], missFramesTh=10, structure=[[0,1,0],[1,1,1],[0,1,0]])
-    #fp.attrs['particleList'] = range(1,maxID+1)
-    
-	#metaData['particleList'] = range(1,maxID+1)
-    #numpy.savetxt('frameOccurenceList.dat',numpy.column_stack((fp.attrs['frameList'],occurenceFrameList)),fmt='%d')
-	#fp.flush(), fp.close()
-#comm.Barrier()
-##############################################################
+if (rank==0):
+    print "Labelling segmented particles"
+    fp = h5py.File(outputFile, 'r+')
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    maxID, occurenceFrameList = tracking.labelParticles(fp, centerDispRange=centerDispRange, perAreaChangeRange=perAreaChangeRange, missFramesTh=missFramesTh, structure=structure)
+    fp.attrs['particleList'] = range(1,maxID+1)
+    numpy.savetxt('frameOccurenceList.dat',numpy.column_stack((fp.attrs['particleList'],occurenceFrameList)),fmt='%d')
+    fp.flush(), fp.close()
+comm.Barrier()
+
+if (rank==0):
+    print "Generating images with labelled particles"
+fp = h5py.File(outputFile, 'r')
+[row,col,numFrames,frameList] = misc.getVitals(fp)
+procFrameList = numpy.array_split(frameList,size)
+
+for frame in procFrameList[rank]:
+    labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+    gImg = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
+    bImg = labelImg.astype('bool')
+    bImgBdry = imageProcess.normalize(imageProcess.boundary(bImg))
+    label, numLabel, dictionary = imageProcess.regionProps(bImg, gImg, structure=structure, centroid=True)
+    bImg = imageProcess.normalize(bImg)
+    for j in range(len(dictionary['id'])):
+        bImgLabelN = label==dictionary['id'][j]
+        ID = numpy.max(bImgLabelN*labelImg)
+        cv2.putText(bImg, str(ID), (int(dictionary['centroid'][j][1]),int(dictionary['centroid'][j][0])), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=127, thickness=1, bottomLeftOrigin=False)
+    finalImage = numpy.column_stack((bImg, numpy.maximum(bImgBdry,gImg)))
+    cv2.imwrite(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.png', finalImage)
+fp.flush(), fp.close()
+comm.Barrier()
+#######################################################################
+
+
+
+
+
+
+
