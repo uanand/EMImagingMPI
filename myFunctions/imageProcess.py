@@ -2,6 +2,7 @@ import numpy
 from scipy import ndimage
 from skimage.morphology import disk, white_tophat
 from mahotas.polygon import fill_convexhull
+from skimage import measure
 
 
 #######################################################################
