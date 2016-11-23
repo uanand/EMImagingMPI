@@ -238,13 +238,98 @@ if not removeList:
 tracking.removeParticles(fp,removeList,size,rank)
 fp.flush(), fp.close()    
 comm.Barrier()
+#######################################################################
 
+
+#######################################################################
+# GLOBAL RELABELING OF PARTICLES
+#######################################################################
+correctionList = [[2,3,4,5,1]]
+
+if (rank==0):
+	print "Global relabeling of  particles"
+    
+if (rank==0):
+    fp = h5py.File(outputFile, 'r+')
+else:
+    fp = h5py.File(outputFile, 'r')
+tracking.globalRelabelParticles(fp,correctionList,size,rank)
+fp.flush(), fp.close()    
+comm.Barrier()
+#######################################################################
+
+
+#######################################################################
+# FRAME-WISE CORRECTION OF PARTICLE LABELS
+#######################################################################
+#frameWiseCorrectionList = [\
+#[range(1,617),[28,0]],\
+#[range(1,627),[30,0]],\
+#[range(1,663),[31,0]],\
+#[range(1,639),[33,0]]\
+#]
+
+#######################################################################
+
+#for frameWiseCorrection in frameWiseCorrectionList:
+	#subFrameList, subCorrectionList = frameWiseCorrection[0], frameWiseCorrection[1]
+	#for frame in subFrameList:
+		#if ((frame-1)%size == rank):
+			#labelImg = numpy.load(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy')
+			#newLabel = subCorrectionList[-1]
+			#for oldLabel in subCorrectionList[:-1]:
+				#labelImg[labelImg==oldLabel] = newLabel
+			#numpy.save(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy', labelImg)
+			
+#maxLabel = max(metaData['particleList'])+1; counter=1
+
+#newLabels = {}
+#for particle in metaData['particleList']:
+	#newLabels[particle]=[]
+
+#for frame in frameList:
+	#particlesInFrame = numpy.unique(numpy.load(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy'))[1:]
+	#for p in particlesInFrame:
+		#if not newLabels[p]:
+			#newLabels[p] = [maxLabel, counter]
+			#maxLabel+=1; counter+=1
+
+#for frame in frameList:
+	#if ((frame-1)%size == rank):
+		#labelImg = numpy.load(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy')
+		#gImg = numpy.load(inputDir+'/output/data/dataProcessing/gImgRawStack/'+str(frame)+'.npy')
+		#for keys in newLabels.keys():
+			#labelImg[labelImg==keys] = newLabels[keys][0]
+		#for keys in newLabels.keys():
+			#labelImg[labelImg==newLabels[keys][0]] = newLabels[keys][1]
+		#bImg = labelImg.astype('bool')
+		#bImgBdry = myPythonFunc.normalize(myPythonFunc.boundary(bImg))
+		#label, numLabel, dictionary = myPythonFunc.regionProps(bImg, gImg, structure=structure, centroid=True)
+		#bImg = myPythonFunc.normalize(bImg)
+		#for j in range(len(dictionary['id'])):
+			#bImgLabelN = label == dictionary['id'][j]
+			#ID = numpy.max(bImgLabelN*labelImg)
+			#cv2.putText(bImg, str(ID), (int(dictionary['centroid'][j][1]),int(dictionary['centroid'][j][0])), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=127, thickness=2, bottomLeftOrigin=False)
+		#finalImage = numpy.column_stack((bImg, numpy.maximum(bImgBdry,gImg)))
+		#numpy.save(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy', labelImg)
+		#cv2.imwrite(inputDir+'/output/images/segmentation/tracking/'+str(frame)+'.png', finalImage)
+
+#metaData['particleList']=[]
+#for key in newLabels.keys():
+	#metaData['particleList'].append(newLabels[key][1])
+#if (rank==0):
+	#metaData['particleList'].sort()
+	#pickle.dump(metaData, open(inputDir+'/metaData', 'wb'))
+#######################################################################
+
+
+#######################################################################
+# GENERATING IMAGES WITH LABELLED PARTICLES
+#######################################################################
 if (rank==0):
     print "Generating images with labelled particles"
 fp = h5py.File(outputFile, 'r')
 tracking.generateImages(fp,outputDir+'/segmentation/tracking',fontScale,size,rank)
 fp.flush(), fp.close()
 comm.Barrier()
-##############################################################
-##############################################################
-
+#######################################################################
