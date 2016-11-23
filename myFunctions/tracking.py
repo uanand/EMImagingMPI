@@ -105,8 +105,54 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
 
 
 #######################################################################
-# 
+# REMOVE UNWANTED PARTICLES AFTER TRACKING
+#######################################################################
+def removeParticles(fp, removeList, size=1, rank=0):
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    particleList = fp.attrs['particleList']
+    zfillVal = fp.attrs['zfillVal']
+    procFrameList = numpy.array_split(frameList,size)
+    
+    for frame in procFrameList[rank]:
+        labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        for r in removeList:
+            labelImg[labelImg==r] = 0
+        numpy.save(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.npy', bImg)
+        
+    if (rank==0):
+        for frame in frameList:
+            labelImg = numpy.load(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.npy')
+            fileIO.writeH5Dataset(fp,'/segmentation/tracking/'+str(frame).zfill(zfillVal),labelImg)
+            fileIO.delete(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.npy')
+        for r in removeList:
+            try:
+                fp.attrs['particleList'].remove(r)
+            except:
+                pass
+    return 0
 #######################################################################
 
 
+#######################################################################
+# 
+#######################################################################
+def generateImages(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1],[1,1,1]]):
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    particleList = fp.attrs['particleList']
+    zfillVal = fp.attrs['zfillVal']
+    procFrameList = numpy.array_split(frameList,size)
+    for frame in procFrameList[rank]:
+        labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        gImg = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
+        bImg = labelImg.astype('bool')
+        bImgBdry = imageProcess.normalize(imageProcess.boundary(bImg))
+        label, numLabel, dictionary = imageProcess.regionProps(bImg, gImg, structure=structure, centroid=True)
+        bImg = imageProcess.normalize(bImg)
+        for j in range(len(dictionary['id'])):
+            bImgLabelN = label==dictionary['id'][j]
+            ID = numpy.max(bImgLabelN*labelImg)
+            cv2.putText(bImg, str(ID), (int(dictionary['centroid'][j][1]),int(dictionary['centroid'][j][0])), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=127, thickness=1, bottomLeftOrigin=False)
+        finalImage = numpy.column_stack((bImg, numpy.maximum(bImgBdry,gImg)))
+        cv2.imwrite(imgDir+'/'+str(frame).zfill(zfillVal)+'.png', finalImage)
+    return 0
 #######################################################################
