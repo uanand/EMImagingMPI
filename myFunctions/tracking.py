@@ -158,6 +158,9 @@ def globalRelabelParticles(fp,correctionList,size,rank):
         for i in correctionList:
             for j in i[:-1]:
                 fp.attrs['particleList'] = numpy.delete(fp.attrs['particleList'], numpy.where(fp.attrs['particleList']==j))
+        for i in correctionList:
+            if (i[-1] not in fp.attrs['particleList']):
+                fp.attrs['particleList'] = numpy.append(fp.attrs['particleList'],i[-1])
     return 0
 #######################################################################
 
