@@ -136,6 +136,33 @@ def removeParticles(fp, removeList, size=1, rank=0):
 
 
 #######################################################################
+# RELABEL THE PARTICLES WITH WRONG LABELS
+#######################################################################
+def globalRelabelParticles(fp,correctionList,size,rank):
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    particleList = fp.attrs['particleList']
+    zfillVal = fp.attrs['zfillVal']
+    procFrameList = numpy.array_split(frameList,size)
+    for frame in procFrameList[rank]:
+        labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        for i in range(len(correctionList)):
+			for j in range(len(correctionList[i])-1):
+				labelImg[labelImg==correctionList[i][j]] = correctionList[i][-1]
+        numpy.save(str(frame).zfill(zfillVal)+'.npy', labelImg)
+        
+    if (rank==0):
+        for frame in frameList:
+            labelImg = numpy.load(str(frame).zfill(zfillVal)+'.npy')
+            fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal), labelImg)
+            fileIO.delete(str(frame).zfill(zfillVal)+'.npy')
+        for i in correctionList:
+            for j in i[:-1]:
+                fp.attrs['particleList'] = numpy.delete(fp.attrs['particleList'], numpy.where(fp.attrs['particleList']==j))
+    return 0
+#######################################################################
+
+
+#######################################################################
 # GENERATE LABELLED IMAGES WITH LABEL TAGS ON BINARY IMAGE
 #######################################################################
 def generateImages(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1],[1,1,1]]):
