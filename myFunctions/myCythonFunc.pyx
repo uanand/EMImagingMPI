@@ -5,7 +5,6 @@ from scipy import ndimage
 import skimage
 from skimage import measure
 import matplotlib.pyplot as plt
-#cimport cv
 import cv2
 
 DTYPE = numpy.double
