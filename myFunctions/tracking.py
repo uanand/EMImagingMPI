@@ -20,7 +20,7 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
     for frame in frameList:
         str1 = str(frame)+'/'+str(frameList[-1]); str2 = '\r'+' '*len(str1)+'\r'
         sys.stdout.write(str1)
-        bImg = fp['/segmentation/bImgStack/'+str(frame).zfill(zfillVal)].value
+        bImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
         gImg = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
 
         if (frame==frameList[0]):
@@ -81,10 +81,10 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
         sys.stdout.flush(); sys.stdout.write(str2)
     sys.stdout.flush()
 
-    if (labelStack.max() < 256):
-        labelStack = labelStack.astype('uint8')
-    elif (labelStack.max()<65536):
-        labelStack = labelStack.astype('uint16')
+    #if (labelStack.max() < 256):
+        #labelStack = labelStack.astype('uint8')
+    #elif (labelStack.max()<65536):
+        #labelStack = labelStack.astype('uint16')
         
     print "Checking for multiple particles in a single frame"
     for frame in frameList:
@@ -204,7 +204,61 @@ def framewiseRelabelParticles(fp,frameWiseCorrectionList,comm,size,rank):
         fp.attrs['particleList'] = particleList
     comm.Barrier()
     return 0
+#######################################################################
+
+
+#######################################################################
+# RELABELING OF PARTICLES IN ORDER OF OCCURENCE
+#######################################################################
+def relabelParticles(fp,comm,size,rank):
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    particleList = fp.attrs['particleList']
+    zfillVal = fp.attrs['zfillVal']
+    procFrameList = numpy.array_split(frameList,size)
     
+    maxLabel = numpy.max(particleList)+1
+    counter = 1
+    
+    newLabels = {}
+    for particle in particleList:
+        newLabels[particle]=[]
+        
+    for frame in frameList:
+        particlesInFrame = numpy.unique(fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value)[1:]
+        for p in particlesInFrame:
+            if not newLabels[p]:
+                newLabels[p] = [maxLabel, counter]
+                maxLabel+=1
+                counter+=1
+                
+    for frame in procFrameList[rank]:
+        labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        for key in newLabels.keys():
+            labelImg[labelImg==key] = newLabels[key][0]
+        for key in newLabels.keys():
+            labelImg[labelImg==newLabels[key][0]] = newLabels[key][1]
+        numpy.save(str(frame).zfill(zfillVal)+'.npy', labelImg)
+    comm.Barrier()
+    
+    if (rank==0):
+        for frame in frameList:
+            labelImg = numpy.load(str(frame).zfill(zfillVal)+'.npy')
+            if (counter < 256):
+                labelImg = labelImg.astype('uint8')
+            elif (counter < 65536):
+                labelImg = labelImg.astype('uint16')
+            else:
+                labelImg = labelImg.astype('uint32')
+            fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal), labelImg)
+            fileIO.delete(str(frame).zfill(zfillVal)+'.npy')
+            particleInFrame = numpy.unique(labelImg)[1:]
+            if (frame==frameList[0]):
+                particleList = particleInFrame.copy()
+            else:
+                particleList = numpy.unique(numpy.append(particleList,particleInFrame))
+        fp.attrs['particleList'] = particleList
+    comm.Barrier()
+    return 0
 #######################################################################
 
 
