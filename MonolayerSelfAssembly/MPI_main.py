@@ -40,11 +40,12 @@ structure = [[1,1,1],[1,1,1],[1,1,1]]
 # INITIALIZATION FOR THE MPI ENVIRONMENT
 #######################################################################
 comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
 size = comm.Get_size()
+rank = comm.Get_rank()
 #######################################################################
 
-
+if (rank==0):
+    tic = time()
 #######################################################################
 # DATA PROCESSSING
 # 1. READ THE INPUT FILES AND STORE THEM FRAME-WISE IN H5 FILE
@@ -185,7 +186,7 @@ comm.barrier()
 if (rank==0):
     for frame in frameList:
         bImg = numpy.load(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy')
-        fileIO.writeH5Dataset(fp,'/segmentation/bImgStack/'+str(frame).zfill(zfillVal),bImg)
+        fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal),bImg)
         fileIO.delete(outputDir+'/segmentation/result/'+str(frame).zfill(zfillVal)+'.npy')
         
 fp.flush(), fp.close()
@@ -222,7 +223,7 @@ comm.Barrier()
 #######################################################################
 # REMOVING UNWANTED PARTICLES
 #######################################################################
-keepList = range(1,21)+range(50,61)
+keepList = range(1,5)+range(6,57)
 removeList = []
 
 if (rank==0):
@@ -235,7 +236,7 @@ else:
 particleList = fp.attrs['particleList']
 if not removeList:
 	removeList = [s for s in particleList if s not in keepList]
-tracking.removeParticles(fp,removeList,size,rank)
+tracking.removeParticles(fp,removeList,comm,size,rank)
 fp.flush(), fp.close()    
 comm.Barrier()
 #######################################################################
@@ -244,18 +245,18 @@ comm.Barrier()
 #######################################################################
 # GLOBAL RELABELING OF PARTICLES
 #######################################################################
-correctionList = [[2,3,4,5,1]]
+#correctionList = [[7,8,71]]
 
-if (rank==0):
-	print "Global relabeling of  particles"
+#if (rank==0):
+	#print "Global relabeling of  particles"
     
-if (rank==0):
-    fp = h5py.File(outputFile, 'r+')
-else:
-    fp = h5py.File(outputFile, 'r')
-tracking.globalRelabelParticles(fp,correctionList,size,rank)
-fp.flush(), fp.close()    
-comm.Barrier()
+#if (rank==0):
+    #fp = h5py.File(outputFile, 'r+')
+#else:
+    #fp = h5py.File(outputFile, 'r')
+#tracking.globalRelabelParticles(fp,correctionList,comm,size,rank)
+#fp.flush(), fp.close()    
+#comm.Barrier()
 #######################################################################
 
 
@@ -263,63 +264,33 @@ comm.Barrier()
 # FRAME-WISE CORRECTION OF PARTICLE LABELS
 #######################################################################
 #frameWiseCorrectionList = [\
-#[range(1,617),[28,0]],\
-#[range(1,627),[30,0]],\
-#[range(1,663),[31,0]],\
-#[range(1,639),[33,0]]\
+#[range(2,5),[18,77]],\
+#[range(1,10),[1,0]]\
 #]
 
+#if (rank==0):
+    #print "Frame-wise relabeling of  particles"
+    
+#if (rank==0):
+    #fp = h5py.File(outputFile, 'r+')
+#else:
+    #fp = h5py.File(outputFile, 'r')
+#tracking.framewiseRelabelParticles(fp,frameWiseCorrectionList,comm,size,rank)
+#fp.flush(), fp.close()    
+#comm.Barrier()
 #######################################################################
 
-#for frameWiseCorrection in frameWiseCorrectionList:
-	#subFrameList, subCorrectionList = frameWiseCorrection[0], frameWiseCorrection[1]
-	#for frame in subFrameList:
-		#if ((frame-1)%size == rank):
-			#labelImg = numpy.load(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy')
-			#newLabel = subCorrectionList[-1]
-			#for oldLabel in subCorrectionList[:-1]:
-				#labelImg[labelImg==oldLabel] = newLabel
-			#numpy.save(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy', labelImg)
-			
-#maxLabel = max(metaData['particleList'])+1; counter=1
 
-#newLabels = {}
-#for particle in metaData['particleList']:
-	#newLabels[particle]=[]
-
-#for frame in frameList:
-	#particlesInFrame = numpy.unique(numpy.load(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy'))[1:]
-	#for p in particlesInFrame:
-		#if not newLabels[p]:
-			#newLabels[p] = [maxLabel, counter]
-			#maxLabel+=1; counter+=1
-
-#for frame in frameList:
-	#if ((frame-1)%size == rank):
-		#labelImg = numpy.load(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy')
-		#gImg = numpy.load(inputDir+'/output/data/dataProcessing/gImgRawStack/'+str(frame)+'.npy')
-		#for keys in newLabels.keys():
-			#labelImg[labelImg==keys] = newLabels[keys][0]
-		#for keys in newLabels.keys():
-			#labelImg[labelImg==newLabels[keys][0]] = newLabels[keys][1]
-		#bImg = labelImg.astype('bool')
-		#bImgBdry = myPythonFunc.normalize(myPythonFunc.boundary(bImg))
-		#label, numLabel, dictionary = myPythonFunc.regionProps(bImg, gImg, structure=structure, centroid=True)
-		#bImg = myPythonFunc.normalize(bImg)
-		#for j in range(len(dictionary['id'])):
-			#bImgLabelN = label == dictionary['id'][j]
-			#ID = numpy.max(bImgLabelN*labelImg)
-			#cv2.putText(bImg, str(ID), (int(dictionary['centroid'][j][1]),int(dictionary['centroid'][j][0])), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=127, thickness=2, bottomLeftOrigin=False)
-		#finalImage = numpy.column_stack((bImg, numpy.maximum(bImgBdry,gImg)))
-		#numpy.save(inputDir+'/output/data/segmentation/tracking/'+str(frame)+'.npy', labelImg)
-		#cv2.imwrite(inputDir+'/output/images/segmentation/tracking/'+str(frame)+'.png', finalImage)
-
-#metaData['particleList']=[]
-#for key in newLabels.keys():
-	#metaData['particleList'].append(newLabels[key][1])
-#if (rank==0):
-	#metaData['particleList'].sort()
-	#pickle.dump(metaData, open(inputDir+'/metaData', 'wb'))
+#######################################################################
+# RELABEL PARTICLES IN THE ORDER OF OCCURENCE
+#######################################################################
+if (rank==0):
+    fp = h5py.File(outputFile, 'r+')
+else:
+    fp = h5py.File(outputFile, 'r')
+tracking.relabelParticles(fp,comm,size,rank)
+fp.flush(), fp.close()    
+comm.Barrier()
 #######################################################################
 
 
@@ -333,3 +304,65 @@ tracking.generateImages(fp,outputDir+'/segmentation/tracking',fontScale,size,ran
 fp.flush(), fp.close()
 comm.Barrier()
 #######################################################################
+
+
+#######################################################################
+# FINDING OUT THE MEASURES FOR TRACKED PARTICLES
+#######################################################################
+if (rank==0):
+	print "FINDING MEASURES FOR TRACKED PARTICLES"
+
+fp = h5py.File(outputFile, 'r')
+[row,col,numFrames,frameList] = misc.getVitals(fp)
+particleList = fp.attrs['particleList']
+zfillVal = fp.attrs['zfillVal']
+procFrameList = numpy.array_split(frameList,size)
+fps = fp.attrs['fps']
+pixInNM = fp.attrs['pixInNM']
+
+outFile = open(str(rank)+'.dat','wb')
+
+area=True
+perimeter=True
+circularity=True
+pixelList=False
+bdryPixelList=False
+centroid=True
+intensityList=False
+sumIntensity=False
+effRadius=True
+radius=False
+circumRadius=False
+inRadius=False
+radiusOFgyration=False
+
+for frame in procFrameList[rank]:
+    labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+    gImgRaw = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
+    outFile.write("%f " %(1.0*frame/fps))
+    for particle in particleList:
+        bImg = labelImg==particle
+        if (bImg.max() == True):
+            label, numLabel, dictionary = imageProcess.regionProps(bImg, gImgRaw, structure=structure, centroid=centroid, area=area, perimeter=perimeter, circularity=circularity, pixelList=pixelList, bdryPixelList=bdryPixelList, effRadius=effRadius, radius=radius, circumRadius=circumRadius, inRadius=inRadius, radiusOFgyration=radiusOFgyration)
+            outFile.write("%f %f %f %f %f %f " %(dictionary['centroid'][0][1]*pixInNM, (row-dictionary['centroid'][0][0])*pixInNM, dictionary['area'][0]*pixInNM*pixInNM, dictionary['perimeter'][0]*pixInNM, dictionary['circularity'][0], dictionary['effRadius'][0]*pixInNM))
+        else:
+            outFile.write("nan nan nan nan nan nan ")
+    outFile.write("\n")
+outFile.close()
+fp.flush(), fp.close()
+comm.Barrier()
+
+if (rank==0):
+    for r in range(size):
+        if (r==0):
+            measures = numpy.loadtxt(str(r)+'.dat')
+        else:
+            measures = numpy.row_stack((measures,numpy.loadtxt(str(r)+'.dat')))
+        fileIO.delete(str(r)+'.dat')
+    measures = measures[numpy.argsort(measures[:,0])]
+    numpy.savetxt(outputDir+'/segmentation/measures/imgDataNM.dat', measures, fmt='%.6f')
+#######################################################################
+
+if (rank==0):
+    toc = time()
+    print toc-tic
