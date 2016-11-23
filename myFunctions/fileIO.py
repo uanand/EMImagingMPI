@@ -24,9 +24,10 @@ def mkdirs(dirName):
     mkdir(dirName+'/dataProcessing/processedStack')
     mkdir(dirName+'/segmentation')
     mkdir(dirName+'/segmentation/result')
-    mkdir(dirName+'/segmentation/manual')
-    mkdir(dirName+'/segmentation/final')
+    #mkdir(dirName+'/segmentation/manual')
+    #mkdir(dirName+'/segmentation/final')
     mkdir(dirName+'/segmentation/tracking')
+    mkdir(dirName+'/segmentation/measures')
     return 0
 ##############################################################
 
@@ -44,9 +45,8 @@ def createH5(fileName):
     fp.create_group("/dataProcessing/processedStack")
     
     fp.create_group("/segmentation")
-    fp.create_group("/segmentation/bImgStack")
+    #fp.create_group("/segmentation/bImgStack")
     fp.create_group("/segmentation/labelStack")
-    fp.create_group("/segmentation/measures")
     
     return fp
 ##############################################################
@@ -112,7 +112,7 @@ def delete(fileName):
 
 
 ##############################################################
-# DELETE A FILE
+# WRITE A DATASET TO HDF5 FILE
 ##############################################################
 def writeH5Dataset(fp,datasetName,dataset):
     flag = 0
