@@ -5,6 +5,7 @@ import sys
 import imageProcess
 import fileIO
 import misc
+import matplotlib.pyplot as plt
 
 #######################################################################
 # LABELING PARTICLES
@@ -112,29 +113,30 @@ def removeParticles(fp, removeList, size=1, rank=0):
     particleList = fp.attrs['particleList']
     zfillVal = fp.attrs['zfillVal']
     procFrameList = numpy.array_split(frameList,size)
-    
     for frame in procFrameList[rank]:
         labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
         for r in removeList:
             labelImg[labelImg==r] = 0
-        numpy.save(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.npy', bImg)
+        numpy.save(str(frame).zfill(zfillVal)+'.npy', labelImg)
         
     if (rank==0):
         for frame in frameList:
-            labelImg = numpy.load(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.npy')
-            fileIO.writeH5Dataset(fp,'/segmentation/tracking/'+str(frame).zfill(zfillVal),labelImg)
-            fileIO.delete(outputDir+'/segmentation/tracking/'+str(frame).zfill(zfillVal)+'.npy')
+            labelImg = numpy.load(str(frame).zfill(zfillVal)+'.npy')
+            fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal), labelImg)
+            fileIO.delete(str(frame).zfill(zfillVal)+'.npy')
         for r in removeList:
-            try:
-                fp.attrs['particleList'].remove(r)
-            except:
-                pass
+            fp.attrs['particleList'] = numpy.delete(fp.attrs['particleList'], numpy.where(fp.attrs['particleList']==r))
+            #try:
+                #fp.attrs['particleList'].remove(r)
+            #except:
+                #pass
+        #print fp.attrs['particleList']
     return 0
 #######################################################################
 
 
 #######################################################################
-# 
+# GENERATE LABELLED IMAGES WITH LABEL TAGS ON BINARY IMAGE
 #######################################################################
 def generateImages(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1],[1,1,1]]):
     [row,col,numFrames,frameList] = misc.getVitals(fp)
