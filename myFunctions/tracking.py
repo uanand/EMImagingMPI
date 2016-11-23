@@ -108,7 +108,7 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
 #######################################################################
 # REMOVE UNWANTED PARTICLES AFTER TRACKING
 #######################################################################
-def removeParticles(fp, removeList, size=1, rank=0):
+def removeParticles(fp,removeList,comm,size,rank):
     [row,col,numFrames,frameList] = misc.getVitals(fp)
     particleList = fp.attrs['particleList']
     zfillVal = fp.attrs['zfillVal']
@@ -118,6 +118,7 @@ def removeParticles(fp, removeList, size=1, rank=0):
         for r in removeList:
             labelImg[labelImg==r] = 0
         numpy.save(str(frame).zfill(zfillVal)+'.npy', labelImg)
+    comm.Barrier()
         
     if (rank==0):
         for frame in frameList:
@@ -126,11 +127,7 @@ def removeParticles(fp, removeList, size=1, rank=0):
             fileIO.delete(str(frame).zfill(zfillVal)+'.npy')
         for r in removeList:
             fp.attrs['particleList'] = numpy.delete(fp.attrs['particleList'], numpy.where(fp.attrs['particleList']==r))
-            #try:
-                #fp.attrs['particleList'].remove(r)
-            #except:
-                #pass
-        #print fp.attrs['particleList']
+    comm.Barrier()
     return 0
 #######################################################################
 
@@ -138,7 +135,7 @@ def removeParticles(fp, removeList, size=1, rank=0):
 #######################################################################
 # RELABEL THE PARTICLES WITH WRONG LABELS
 #######################################################################
-def globalRelabelParticles(fp,correctionList,size,rank):
+def globalRelabelParticles(fp,correctionList,comm,size,rank):
     [row,col,numFrames,frameList] = misc.getVitals(fp)
     particleList = fp.attrs['particleList']
     zfillVal = fp.attrs['zfillVal']
@@ -149,19 +146,65 @@ def globalRelabelParticles(fp,correctionList,size,rank):
 			for j in range(len(correctionList[i])-1):
 				labelImg[labelImg==correctionList[i][j]] = correctionList[i][-1]
         numpy.save(str(frame).zfill(zfillVal)+'.npy', labelImg)
-        
+    comm.Barrier()
+    
     if (rank==0):
         for frame in frameList:
             labelImg = numpy.load(str(frame).zfill(zfillVal)+'.npy')
             fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal), labelImg)
             fileIO.delete(str(frame).zfill(zfillVal)+'.npy')
-        for i in correctionList:
-            for j in i[:-1]:
-                fp.attrs['particleList'] = numpy.delete(fp.attrs['particleList'], numpy.where(fp.attrs['particleList']==j))
-        for i in correctionList:
-            if (i[-1] not in fp.attrs['particleList']):
-                fp.attrs['particleList'] = numpy.append(fp.attrs['particleList'],i[-1])
+            particleInFrame = numpy.unique(labelImg)[1:]
+            if (frame==frameList[0]):
+                particleList = particleInFrame.copy()
+            else:
+                particleList = numpy.unique(numpy.append(particleList,particleInFrame))
+        fp.attrs['particleList'] = particleList
+        #for i in correctionList:
+            #for j in i[:-1]:
+                #fp.attrs['particleList'] = numpy.delete(fp.attrs['particleList'], numpy.where(fp.attrs['particleList']==j))
+        #for i in correctionList:
+            #if (i[-1] not in fp.attrs['particleList']):
+                #fp.attrs['particleList'] = numpy.append(fp.attrs['particleList'],i[-1])
+    comm.Barrier()
     return 0
+#######################################################################
+
+
+#######################################################################
+# FRAME-WISE RELABELING OF PARTICLES
+#######################################################################
+def framewiseRelabelParticles(fp,frameWiseCorrectionList,comm,size,rank):
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    particleList = fp.attrs['particleList']
+    zfillVal = fp.attrs['zfillVal']
+    procFrameList = numpy.array_split(frameList,size)
+    
+    for frame in procFrameList[rank]:
+        labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        for frameWiseCorrection in frameWiseCorrectionList:
+            subFrameList, subCorrectionList = frameWiseCorrection[0], frameWiseCorrection[1]
+            for subFrame in subFrameList:
+                if (frame==subFrame):
+                    newLabel = subCorrectionList[-1]
+                    for oldLabel in subCorrectionList[:-1]:
+                        labelImg[labelImg==oldLabel] = newLabel
+        numpy.save(str(frame).zfill(zfillVal)+'.npy', labelImg)
+    comm.Barrier()
+    
+    if (rank==0):
+        for frame in frameList:
+            labelImg = numpy.load(str(frame).zfill(zfillVal)+'.npy')
+            fileIO.writeH5Dataset(fp,'/segmentation/labelStack/'+str(frame).zfill(zfillVal), labelImg)
+            fileIO.delete(str(frame).zfill(zfillVal)+'.npy')
+            particleInFrame = numpy.unique(labelImg)[1:]
+            if (frame==frameList[0]):
+                particleList = particleInFrame.copy()
+            else:
+                particleList = numpy.unique(numpy.append(particleList,particleInFrame))
+        fp.attrs['particleList'] = particleList
+    comm.Barrier()
+    return 0
+    
 #######################################################################
 
 
