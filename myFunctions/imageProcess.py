@@ -1,4 +1,5 @@
 import numpy
+import cv2
 from scipy import ndimage
 from skimage.morphology import disk, white_tophat
 from mahotas.polygon import fill_convexhull
@@ -285,3 +286,30 @@ def regionProps(bImg, gImg=0, structure=[[1,1,1],[1,1,1],[1,1,1]], area=False, p
 #######################################################################
 
 
+#######################################################################
+# WRITE TEXT ON RGB IMAGE
+#######################################################################
+
+#######################################################################
+
+
+#######################################################################
+# WRITE TEXT ON GRAYSCALE IMAGE
+#######################################################################
+def textOnGrayImage(gImg, text, position, fontScale=1, color=127, thickness=1):
+    cv2.putText(gImg, text, (position[1],position[0]), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=color, thickness=thickness, bottomLeftOrigin=False)
+    return gImg
+#######################################################################
+
+
+#######################################################################
+# CONVER A GRAYSCALE IMAGE TO RGB
+#######################################################################
+def gray2rgb(gImg):
+    [row,col] = gImg.shape
+    rgbImg = numpy.zeros([row, col, 3], dtype='uint8')
+    rgbImg[:,:,0] = gImg
+    rgbImg[:,:,1] = gImg
+    rgbImg[:,:,2] = gImg
+    return rgbImg
+#######################################################################
