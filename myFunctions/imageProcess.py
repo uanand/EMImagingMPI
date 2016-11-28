@@ -4,9 +4,8 @@ from skimage.morphology import disk, white_tophat
 from mahotas.polygon import fill_convexhull
 from skimage import measure
 
-
 #######################################################################
-# 
+# NORMALIZE AN 8 BIT GRAYSCALE IMAGE
 #######################################################################
 def normalize(gImg, min=0, max=255):
     if (gImg.max() > gImg.min()):
@@ -20,7 +19,7 @@ def normalize(gImg, min=0, max=255):
 
 
 #######################################################################
-#
+# INVERT A GRAYSCALE IMAGE
 #######################################################################
 def invertImage(gImg):
     return 255-gImg
@@ -28,7 +27,7 @@ def invertImage(gImg):
 
 
 #######################################################################
-#
+# PERFORM BACKGROUND SUBTRACTION USING THE TOP-HAT TRANSFORM
 #######################################################################
 def subtractBackground(gImg,sigma,radius):
     gImgBlur = ndimage.gaussian_filter(gImg, sigma=sigma)
@@ -39,7 +38,7 @@ def subtractBackground(gImg,sigma,radius):
 
 
 #######################################################################
-#
+# FILL UP THE HOLES IN A BINARY IMAGE
 #######################################################################
 def fillHoles(bImg):
     return ndimage.binary_fill_holes(bImg)
@@ -47,7 +46,7 @@ def fillHoles(bImg):
 
 
 #######################################################################
-# 
+# DRAW A CONVEX HULL AND FILL IT AROUND INDIVIDUAL CONNECTED OBJECTS
 #######################################################################
 def convexHull(bImg):
     label,numLabel=ndimage.label(bImg)
@@ -61,7 +60,7 @@ def convexHull(bImg):
 
 
 #######################################################################
-# 
+# FIND OUT THE BOUNDARY OF CONNECTED OBJECTS IN A BINARY IMAGE
 #######################################################################
 def boundary(bImg):
     bImgErode = ndimage.binary_erosion(bImg)
@@ -71,7 +70,7 @@ def boundary(bImg):
 
 
 #######################################################################
-# 
+# FIND OUT THE REGION PROPERTIES OF CONNECTED OBJECTS IN A BINARY IMAGE
 #######################################################################
 def regionProps(bImg, gImg=0, structure=[[1,1,1],[1,1,1],[1,1,1]], area=False, perimeter=False, circularity=False, orientation=False, pixelList=False, bdryPixelList = False, centroid=False, intensityList=False, sumIntensity=False, avgIntensity=False, maxIntensity=False, effRadius=False, radius=False, theta=False, rTick=False, qTick=False, circumRadius=False, inRadius=False, radiusOFgyration=False, rTickMMM=False, thetaMMM=False):
     [labelImg, numLabel] = ndimage.label(bImg, structure=structure)
@@ -284,3 +283,5 @@ def regionProps(bImg, gImg=0, structure=[[1,1,1],[1,1,1],[1,1,1]], area=False, p
             dictionary['dThetaM'].append(dThetaM)
     return labelImg, numLabel, dictionary
 #######################################################################
+
+
