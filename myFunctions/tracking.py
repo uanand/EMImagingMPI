@@ -20,7 +20,7 @@ def labelParticles(fp, centerDispRange=[5,5], perAreaChangeRange=[10,20], missFr
     for frame in frameList:
         str1 = str(frame)+'/'+str(frameList[-1]); str2 = '\r'+' '*len(str1)+'\r'
         sys.stdout.write(str1)
-        bImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        bImg = fp['/segmentation/bImgStack/'+str(frame).zfill(zfillVal)].value
         gImg = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
 
         if (frame==frameList[0]):
@@ -265,7 +265,7 @@ def relabelParticles(fp,comm,size,rank):
 #######################################################################
 # GENERATE LABELLED IMAGES WITH LABEL TAGS ON BINARY IMAGE
 #######################################################################
-def generateImages(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1],[1,1,1]]):
+def generateLabelImages(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1],[1,1,1]]):
     [row,col,numFrames,frameList] = misc.getVitals(fp)
     particleList = fp.attrs['particleList']
     zfillVal = fp.attrs['zfillVal']
@@ -280,8 +280,35 @@ def generateImages(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1
         for j in range(len(dictionary['id'])):
             bImgLabelN = label==dictionary['id'][j]
             ID = numpy.max(bImgLabelN*labelImg)
-            cv2.putText(bImg, str(ID), (int(dictionary['centroid'][j][1]),int(dictionary['centroid'][j][0])), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=127, thickness=1, bottomLeftOrigin=False)
+            bImg = imageProcess.textOnGrayImage(bImg, str(ID), (int(dictionary['centroid'][j][0])+3,int(dictionary['centroid'][j][1])-3), fontScale=fontScale, color=127, thickness=1)
         finalImage = numpy.column_stack((bImg, numpy.maximum(bImgBdry,gImg)))
+        cv2.imwrite(imgDir+'/'+str(frame).zfill(zfillVal)+'.png', finalImage)
+    return 0
+#######################################################################
+
+
+#######################################################################
+# GENERATE RGB LABELLED IMAGES WITH LABEL TAGS ON BINARY IMAGE
+#######################################################################
+def generateLabelImagesRGB(fp,imgDir,fontScale=1,size=1,rank=0,structure=[[1,1,1],[1,1,1],[1,1,1]]):
+    [row,col,numFrames,frameList] = misc.getVitals(fp)
+    particleList = fp.attrs['particleList']
+    zfillVal = fp.attrs['zfillVal']
+    procFrameList = numpy.array_split(frameList,size)
+    for frame in procFrameList[rank]:
+        labelImg = fp['/segmentation/labelStack/'+str(frame).zfill(zfillVal)].value
+        gImg = fp['/dataProcessing/gImgRawStack/'+str(frame).zfill(zfillVal)].value
+        bImg = labelImg.astype('bool')
+        bImgBdry = imageProcess.normalize(imageProcess.boundary(bImg))
+        label, numLabel, dictionary = imageProcess.regionProps(bImg, gImg, structure=structure, centroid=True)
+        bImg = imageProcess.normalize(bImg)
+        rgbImg = imageProcess.gray2rgb(bImg)
+        for j in range(len(dictionary['id'])):
+            bImgLabelN = label==dictionary['id'][j]
+            ID = numpy.max(bImgLabelN*labelImg)
+            rgbImg = imageProcess.textOnRGBImage(rgbImg, str(ID), (int(dictionary['centroid'][j][0])+3,int(dictionary['centroid'][j][1])-3), fontScale=fontScale, color=(255,0,0), thickness=1)
+        finalImage = numpy.column_stack((rgbImg, imageProcess.gray2rgb(numpy.maximum(bImgBdry,gImg))))
+        finalImage = imageProcess.RGBtoBGR(finalImage)
         cv2.imwrite(imgDir+'/'+str(frame).zfill(zfillVal)+'.png', finalImage)
     return 0
 #######################################################################
