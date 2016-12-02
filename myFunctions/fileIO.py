@@ -24,10 +24,7 @@ def mkdirs(dirName):
     mkdir(dirName+'/dataProcessing/processedStack')
     mkdir(dirName+'/segmentation')
     mkdir(dirName+'/segmentation/result')
-    #mkdir(dirName+'/segmentation/manual')
-    #mkdir(dirName+'/segmentation/final')
     mkdir(dirName+'/segmentation/tracking')
-    mkdir(dirName+'/segmentation/measures')
     return 0
 ##############################################################
 
@@ -39,13 +36,13 @@ def createH5(fileName):
     print "Creating the H5 dataset"
     fp = h5py.File(fileName, "w")
     
-    fp.create_group("/dataProcessing")
+    #fp.create_group("/dataProcessing")
     fp.create_group("/dataProcessing/dm4RawStack")
     fp.create_group("/dataProcessing/gImgRawStack")
     fp.create_group("/dataProcessing/processedStack")
     
-    fp.create_group("/segmentation")
-    #fp.create_group("/segmentation/bImgStack")
+    #fp.create_group("/segmentation")
+    fp.create_group("/segmentation/bImgStack")
     fp.create_group("/segmentation/labelStack")
     
     return fp
