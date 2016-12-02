@@ -71,6 +71,44 @@ def boundary(bImg):
 
 
 #######################################################################
+# BINARY OPENING OPERATION
+#######################################################################
+def binary_opening(bImg, iterations=1):
+    bImg = ndimage.binary_erosion(bImg, iterations=iterations)
+    bImg = ndimage.binary_dilation(bImg, iterations=iterations)
+    return bImg
+#######################################################################
+
+
+#######################################################################
+# BINARY CLOSING OPERATION
+#######################################################################
+def binary_closing(bImg, iterations=1):
+    bImg = ndimage.binary_dilation(bImg, iterations=iterations)
+    bImg = ndimage.binary_erosion(bImg, iterations=iterations)
+    return bImg
+#######################################################################
+
+
+#######################################################################
+# BINARY DILATION OPERATION
+#######################################################################
+def binary_dilation(bImg, iterations=1):
+    bImg = ndimage.binary_dilation(bImg, iterations=iterations)
+    return bImg
+#######################################################################
+
+
+#######################################################################
+# BINARY EROSION OPERATION
+#######################################################################
+def binary_erosion(bImg, iterations=1):
+    bImg = ndimage.binary_erosion(bImg, iterations=iterations)
+    return bImg
+#######################################################################
+
+
+#######################################################################
 # FIND OUT THE REGION PROPERTIES OF CONNECTED OBJECTS IN A BINARY IMAGE
 #######################################################################
 def regionProps(bImg, gImg=0, structure=[[1,1,1],[1,1,1],[1,1,1]], area=False, perimeter=False, circularity=False, orientation=False, pixelList=False, bdryPixelList = False, centroid=False, intensityList=False, sumIntensity=False, avgIntensity=False, maxIntensity=False, effRadius=False, radius=False, theta=False, rTick=False, qTick=False, circumRadius=False, inRadius=False, radiusOFgyration=False, rTickMMM=False, thetaMMM=False):
@@ -289,7 +327,9 @@ def regionProps(bImg, gImg=0, structure=[[1,1,1],[1,1,1],[1,1,1]], area=False, p
 #######################################################################
 # WRITE TEXT ON RGB IMAGE
 #######################################################################
-
+def textOnRGBImage(RGBImg, text, position, fontScale=1, color=(255,0,0), thickness=1):
+    cv2.putText(RGBImg, text, (position[1],position[0]), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=fontScale, color=color, thickness=thickness, bottomLeftOrigin=False)
+    return RGBImg
 #######################################################################
 
 
@@ -303,7 +343,7 @@ def textOnGrayImage(gImg, text, position, fontScale=1, color=127, thickness=1):
 
 
 #######################################################################
-# CONVER A GRAYSCALE IMAGE TO RGB
+# CONVERT A GRAYSCALE IMAGE TO RGB
 #######################################################################
 def gray2rgb(gImg):
     [row,col] = gImg.shape
@@ -312,4 +352,15 @@ def gray2rgb(gImg):
     rgbImg[:,:,1] = gImg
     rgbImg[:,:,2] = gImg
     return rgbImg
+#######################################################################
+
+
+#######################################################################
+# CONVERT A RGB IMAGE TO BGR
+#######################################################################
+def RGBtoBGR(rgbImg):
+    bgrImg = rgbImg.copy()
+    bgrImg[:,:,0] = rgbImg[:,:,2]
+    bgrImg[:,:,2] = rgbImg[:,:,0]
+    return bgrImg
 #######################################################################
