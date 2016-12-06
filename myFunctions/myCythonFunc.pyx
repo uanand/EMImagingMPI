@@ -876,7 +876,7 @@ def areaThreshold(numpy.ndarray[numpy.uint8_t, ndim=2] bImg, numpy.ndarray[numpy
 	col = bImg.shape[1]
 
 	cdef numpy.ndarray[numpy.int32_t, ndim=2] labelImg = numpy.zeros([row, col], dtype=numpy.int32)
-	labelImg, numLabel = ndimage.label(bImg)
+	labelImg, numLabel = ndimage.label(bImg,structure=[[1,1,1],[1,1,1],[1,1,1]])
 	cdef numpy.ndarray[numpy.int32_t, ndim=1] area = numpy.zeros([numLabel+1], dtype=numpy.int32)
 
 	for i in range(row):
@@ -904,7 +904,7 @@ def circularThreshold(numpy.ndarray[numpy.uint8_t, ndim=2] bImg, numpy.ndarray[n
 	cdef numpy.ndarray[numpy.uint8_t, ndim=2] bImgLabelN = numpy.zeros([row, col], dtype=numpy.uint8)
 
 
-	labelImg, numLabel = ndimage.label(bImg)
+	labelImg, numLabel = ndimage.label(bImg,structure=[[1,1,1],[1,1,1],[1,1,1]])
 	for i in range(1, numLabel+1):
 		bImgLabelN = (labelImg == i).astype('uint8')
 		area = bImgLabelN.sum()
